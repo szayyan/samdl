@@ -275,6 +275,11 @@ def load_config_file(
     default=downloader_sig.parameters["truncate"].default,
     help="Maximum length of the file/folder names.",
 )
+@click.option(
+    "--ignore-ids",
+    type=str,
+    help="Comma separated list of ids to ignore when downloading playlists."
+)
 # DownloaderSong specific options
 @click.option(
     "--codec-song",
@@ -345,6 +350,7 @@ def main(
     exclude_tags: str,
     cover_size: int,
     truncate: int,
+    ignore_ids: str,
     codec_song: SongCodec,
     synced_lyrics_format: SyncedLyricsFormat,
     codec_music_video: MusicVideoCodec,
@@ -480,6 +486,10 @@ def main(
                 f"Track {download_index}/{len(download_queue_tracks_metadata)} from URL {url_index}/{len(urls)}",
                 colorama.Style.DIM,
             )
+
+            if track_metadata["id"] in ignore_ids:
+                continue;
+
             try:
                 remuxed_path = None
                 if download_queue.playlist_attributes:
