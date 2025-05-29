@@ -20,6 +20,7 @@ from .downloader_song import DownloaderSong
 from .downloader_song_legacy import DownloaderSongLegacy
 from .enums import CoverFormat, DownloadMode, MusicVideoCodec, PostQuality, RemuxMode
 from .itunes_api import ItunesApi
+from .local_library import get_local_library_song_ids
 from .utils import color_text, prompt_path
 
 apple_music_api_sig = inspect.signature(AppleMusicApi.__init__)
@@ -275,11 +276,6 @@ def load_config_file(
     default=downloader_sig.parameters["truncate"].default,
     help="Maximum length of the file/folder names.",
 )
-@click.option(
-    "--ignore-ids",
-    type=str,
-    help="Comma separated list of ids to ignore when downloading playlists."
-)
 # DownloaderSong specific options
 @click.option(
     "--codec-song",
@@ -350,7 +346,6 @@ def main(
     exclude_tags: str,
     cover_size: int,
     truncate: int,
-    ignore_ids: str,
     codec_song: SongCodec,
     synced_lyrics_format: SyncedLyricsFormat,
     codec_music_video: MusicVideoCodec,
@@ -415,6 +410,14 @@ def main(
         downloader,
         quality_post,
     )
+
+
+    existing_ids = []
+    if not overwrite:
+        logger.debug("Scanning local files for existing music.")
+        existing_ids = get_local_library_song_ids(output_path)
+        logger.debug(f"{len(existing_ids)} exisiting songs discovered.")
+
     if not synced_lyrics_only:
         if wvd_path:
             prompt_path(".wvd file", wvd_path)
@@ -458,6 +461,7 @@ def main(
                 "You have chosen an experimental codec. "
                 "They're not guaranteed to work due to API limitations."
             )
+
     error_count = 0
     if read_urls_as_txt:
         _urls = []
@@ -487,8 +491,9 @@ def main(
                 colorama.Style.DIM,
             )
 
-            if track_metadata["id"] in ignore_ids:
-                continue;
+            if int(track_metadata["id"]) in existing_ids and not overwrite:
+                logger.info(f"Skipping track {download_index} as it's already downloaded and overwrite is set to false")
+                continue
 
             try:
                 remuxed_path = None
