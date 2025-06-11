@@ -525,7 +525,7 @@ class Downloader:
         mp4.save()
 
     def append_to_download_log(self, output_path: Path, tags: dict):
-        log_full_path = output_path.joinpath(".download-log")
+        log_full_path = output_path.joinpath(".log/download.log")
         with open(log_full_path, 'a',encoding='utf-8') as file:
             file.write(f"{tags["artist"]} - {tags["title"]}\n")
 
